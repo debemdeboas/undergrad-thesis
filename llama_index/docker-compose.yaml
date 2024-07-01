@@ -1,0 +1,54 @@
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:v0.3.5-cuda
+    environment:
+      - ENV=PROD
+      - ENABLE_COMMUNITY_SHARING=False
+      - USE_CUDA_DOCKER=True
+      - GLOBAL_LOG_LEVEL=INFO
+    ports:
+      - "3030:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - open-webui:/app/backend/data
+    restart: no
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [ gpu ]
+              count: all
+
+  pipelines:
+    image: ghcr.io/open-webui/pipelines:cuda
+    environment:
+      - PIPELINES_URLS=file:///app/pipelines/llama_index_retrieval_pipeline.py
+      # - OLLAMA_BASE_URL=http://host.docker.internal:11434
+    ports:
+      - "9099:9099"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - type: bind
+        source: ./pipelines/llama_index_retrieval_pipeline.py
+        target: /app/pipelines/llama_index_retrieval_pipeline.py
+
+      - type: bind
+        source: ../rag-data/md
+        target: /app/rag-data
+
+      - pipelines:/app/pipelines
+      - datastore:/app/persist
+    restart: no
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [ gpu ]
+              count: all
+
+volumes:
+  open-webui:
+  pipelines:
+  datastore:
