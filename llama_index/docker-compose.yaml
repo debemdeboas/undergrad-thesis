@@ -1,6 +1,6 @@
 services:
   open-webui:
-    image: ghcr.io/open-webui/open-webui:v0.3.5
+    image: ghcr.io/open-webui/open-webui:v0.3.7
     environment:
       - ENV=PROD
       - ENABLE_COMMUNITY_SHARING=False
