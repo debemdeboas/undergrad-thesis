@@ -4,7 +4,7 @@ services:
     environment:
       - ENV=PROD
       - ENABLE_COMMUNITY_SHARING=False
-      - USE_CUDA_DOCKER=True
+      - USE_CUDA_DOCKER=False
       - GLOBAL_LOG_LEVEL=INFO
     ports:
       - "3030:8080"
@@ -13,12 +13,6 @@ services:
     volumes:
       - open-webui:/app/backend/data
     restart: no
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities: [ gpu ]
-              count: all
 
   pipelines:
     image: ghcr.io/open-webui/pipelines:main
@@ -41,12 +35,6 @@ services:
       - pipelines:/app/pipelines
       - datastore:/app/persist
     restart: no
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities: [ gpu ]
-              count: all
 
 volumes:
   open-webui:
