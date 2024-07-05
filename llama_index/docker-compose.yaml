@@ -12,13 +12,12 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - open-webui:/app/backend/data
-    restart: no
+    restart: unless-stopped
 
   pipelines:
-    image: ghcr.io/open-webui/pipelines:main
+    image: ghcr.io/open-webui/pipelines:cuda
     environment:
       - PIPELINES_URLS=file:///app/pipelines/llama_index_retrieval_pipeline.py
-      # - OLLAMA_BASE_URL=http://host.docker.internal:11434
     ports:
       - "9099:9099"
     extra_hosts:
@@ -29,14 +28,12 @@ services:
         target: /app/pipelines/llama_index_retrieval_pipeline.py
 
       - type: bind
-        source: ../rag-data/md
-        target: /app/rag-data
+        source: ./persist
+        target: /app/persist
 
       - pipelines:/app/pipelines
-      - datastore:/app/persist
-    restart: no
+    restart: unless-stopped
 
 volumes:
   open-webui:
   pipelines:
-  datastore:
