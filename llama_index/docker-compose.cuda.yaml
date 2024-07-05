@@ -1,6 +1,6 @@
 services:
   open-webui:
-    image: ghcr.io/open-webui/open-webui:v0.3.5
+    image: ghcr.io/open-webui/open-webui:v0.3.5-cuda
     environment:
       - ENV=PROD
       - ENABLE_COMMUNITY_SHARING=False
@@ -21,7 +21,7 @@ services:
               count: all
 
   pipelines:
-    image: ghcr.io/open-webui/pipelines:main
+    image: ghcr.io/open-webui/pipelines:cuda
     environment:
       - PIPELINES_URLS=file:///app/pipelines/llama_index_retrieval_pipeline.py
       # - OLLAMA_BASE_URL=http://host.docker.internal:11434
