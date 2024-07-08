@@ -12,7 +12,7 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - open-webui:/app/backend/data
-    restart: unless-stopped
+    restart: no
 
   pipelines:
     image: ghcr.io/open-webui/pipelines:cuda
@@ -32,7 +32,14 @@ services:
         target: /app/persist
 
       - pipelines:/app/pipelines
-    restart: unless-stopped
+    restart: no
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [ gpu ]
+              count: all
+              driver: nvidia
 
 volumes:
   open-webui:

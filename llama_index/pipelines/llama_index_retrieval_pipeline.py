@@ -5,7 +5,7 @@ date: 2024-07-01
 version: 1.0
 license: MIT
 description: This pipeline uses the LlamaIndex library to retrieve documents from a knowledge base. 
-requirements: llama-index, llama-index-llms-ollama, llama-index-embeddings-ollama, llama-index-embeddings-huggingface, llama-index-llms-groq, llama-index-llms-vllm, einops, accelerate, transformers, llama-index-llms-openai-like httpx
+requirements: llama-index, llama-index-llms-ollama, llama-index-embeddings-ollama, llama-index-embeddings-huggingface, llama-index-llms-groq, llama-index-llms-vllm, einops, accelerate, transformers, llama-index-llms-openai-like httpx torch
 """
 
 import logging
@@ -14,6 +14,7 @@ import sys
 from typing import Generator, Iterator, Literal, Union
 
 import httpx
+import torch
 from pydantic import BaseModel
 
 from llama_index.core import (
@@ -31,10 +32,10 @@ from llama_index.core.storage import StorageContext
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.groq import Groq
 from llama_index.llms.ollama import Ollama
-from llama_index.llms.vllm import Vllm
+from llama_index.llms.openai_like import OpenAILike
 
 logging.basicConfig(
-    stream=sys.stdout, level=logging.DEBUG, format="[%(filename)s:%(lineno)s - %(funcName)s() ] %(message)s"
+    stream=sys.stdout, level=logging.WARN, format="[%(filename)s:%(lineno)s - %(funcName)s() ] %(message)s"
 )
 
 
@@ -45,22 +46,25 @@ class Pipeline:
         These options can be set through the OpenWebUI interface.
         """
 
+        temperature: float = 0.5
+
         hf_token: str = ""
 
         embed_model: str = "BAAI/bge-m3"  # nomic-ai/nomic-embed-text-v1.5
         embed_model_trust_remote_code: bool = False
         embed_cuda: bool = False
 
-        llm_provider: Literal["ollama", "groq", "vllm"] = "groq"
+        llm_provider: Literal["ollama", "groq", "openailike"] = "ollama"
 
         ollama_base_url: str = "http://localhost:11434"
-        ollama_model: str = "NousResearch/Meta-Llama-3-8B"
+        ollama_model: str = "llama3:70b-instruct-q8_0"
 
         groq_api_key: str = ""
         groq_model: str = "llama3-70b-8192"
 
-        vllm_api_url: str = ""
-        vllm_model: str = ""
+        oai_like_api_base: str = ""
+        oai_like_api_key: str = ""
+        oai_like_model: str = ""
 
         system_prompt: str = (
             "Act as a teacher assistant and answer questions using the provided context.\n"
@@ -97,6 +101,8 @@ class Pipeline:
     async def on_startup(self):
         logging.info("Startup...")
 
+        logging.info(f"CUDA available: {torch.cuda.is_available()}")
+
         await self.on_valves_updated()
 
         logging.info("Configuring embedding model...")
@@ -122,7 +128,7 @@ class Pipeline:
                 self.documents,
                 storage_context=self.storage_context,
                 transformations=[
-                    MarkdownNodeParser(),
+                    MarkdownNodeParser(include_metadata=False),
                     HierarchicalNodeParser.from_defaults(chunk_sizes=[2048, 512, 128], chunk_overlap=30),
                 ],
             )
@@ -137,7 +143,7 @@ class Pipeline:
             + (
                 "Here are the relevant documents for the context:\n"
                 "{context_str}"
-                "\nInstruction: Use the previous chat history, or the context above, to interact and help the user."
+                "\nInstruction: Use the previous chat history, and the context above, to interact and help the user."
                 "\nPlease answer in the same language as the question."
             ),
         )
@@ -157,6 +163,7 @@ class Pipeline:
                     model=self.valves.ollama_model,
                     base_url=self.valves.ollama_base_url,
                     system_prompt=self.valves.system_prompt,
+                    temperature=self.valves.temperature,
                 )
             case "groq":
                 Settings.llm = Groq(
@@ -164,17 +171,18 @@ class Pipeline:
                     api_key=self.valves.groq_api_key,
                     system_prompt=self.valves.system_prompt,
                 )
-            case "vllm":
-                Settings.llm = Vllm(
-                    model=self.valves.vllm_model,
-                    api_url=self.valves.vllm_api_url,
+            case "openailike":
+                Settings.llm = OpenAILike(
+                    model=self.valves.oai_like_model,
+                    api_base=self.valves.oai_like_api_base,
+                    api_key=self.valves.oai_like_api_key,
                     system_prompt=self.valves.system_prompt,
+                    temperature=self.valves.temperature,
                 )
 
         os.environ["HF_TOKEN"] = self.valves.hf_token
 
     async def inlet(self, body: dict, user: dict) -> dict:
-        # This function is called before the OpenAI API request is made. You can modify the form data before it is sent to the OpenAI API.
         logging.debug(f"inlet:{__name__}")
 
         logging.debug(body)
@@ -183,7 +191,6 @@ class Pipeline:
         return body
 
     async def outlet(self, body: dict, user: dict) -> dict:
-        # This function is called after the OpenAI API response is completed. You can modify the messages after they are received from the OpenAI API.
         logging.debug(f"outlet:{__name__}")
 
         logging.debug(body)
