@@ -1,0 +1,41 @@
+name: GitHub Pages
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  latex:
+    uses: ./.github/workflows/latex.yml
+
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: latex
+    steps:
+      - uses: actions/configure-pages@v5
+      
+      - uses: actions/download-artifact@v4
+        with:
+          name: main
+          path: out/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'out/'
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
+

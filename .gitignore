@@ -1,0 +1,10 @@
+*.aux
+*.bbl
+*.log
+*.blg
+*.out
+*.synctex.gz
+*.toc
+*.pyg
+__pycache__
+persist
