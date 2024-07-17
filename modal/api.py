@@ -1,24 +1,3 @@
-# ---
-# cmd: ["modal", "deploy", "06_gpu_and_ml/llm-serving/vllm_oai_compatible/api.py", "&&", "pip", "install", "openai==1.13.3", "&&" "python", "06_gpu_and_ml/llm-serving/vllm_oai_compatible/client.py"]
-# ---
-# # Run an OpenAI-Compatible vLLM Server
-#
-# LLMs do more than just model language: they chat, they produce JSON and XML, they run code, and more.
-# OpenAI's API has emerged as a standard interface for LLMs,
-# and it is supported by open source LLM serving frameworks like vLLM.
-#
-# In this example, we show how to run a vLLM server in OpenAI-compatible mode on Modal.
-# Note that the vLLM server is a FastAPI app, which can be configured and extended just like any other.
-# Here, we use it to add simple authentication middleware, following the
-# [implementation in the vLLM repository](https://github.com/vllm-project/vllm/blob/v0.4.1/vllm/entrypoints/openai/api_server.py).
-#
-# ## Set up the container image
-#
-# Our first order of business is to define the environment our server will run in: the [container `Image`](https://modal.com/docs/guide/custom-container).
-# We'll build it up, step-by-step, from a slim Debian Linux image.
-#
-# First, we install some dependencies with `pip`.
-
 from pathlib import Path
 
 import modal
